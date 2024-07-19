@@ -1,0 +1,65 @@
+version: '2'
+
+services:
+  postgres:
+    image: postgres:14.8-alpine3.18
+    env_file: .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - currate-data:/var/lib/postgresql/data
+    networks:
+      - the_net
+
+  redis:
+    image: redis:alpine
+    networks:
+      - the_net
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - the_net
+    volumes:
+      - /usr/src/app/static
+      - ./:/usr/src/app
+
+  celery:
+    build: .
+    env_file: .env
+    entrypoint: celery
+    command: -A currency_converter.celery worker --loglevel=info
+    volumes:
+      - .:/usr/src/app/
+    depends_on:
+      - redis
+    networks:
+      - the_net
+
+  celery-beat:
+    build: .
+    env_file: .env
+    entrypoint: celery
+    command: -A currency_converter.celery beat --loglevel=info
+    volumes:
+      - .:/usr/src/app/
+    depends_on:
+      - redis
+    networks:
+      - the_net
+
+volumes:
+  currate-data:
+
+networks:
+  the_net:
