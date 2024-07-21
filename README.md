@@ -1,3 +1,6 @@
+This program allows you to convert the following currencies USD, CZK, EUR, PLN.
+
+Start:
 1. Fill in your data in the .env file
 
 2. Build the project using the command:
